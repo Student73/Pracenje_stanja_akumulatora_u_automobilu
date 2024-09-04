@@ -1,8 +1,8 @@
 ﻿  main_application.c
 C:\Users\Olivera\Desktop\autoelektronika\olja_danja_projekat\projekat\Vezba8 program\Starter\main_application.c(2,10): warning C4067: unexpected tokens following preprocessor directive - expected a newline
-C:\Users\Olivera\Desktop\autoelektronika\olja_danja_projekat\projekat\Vezba8 program\Starter\main_application.c(358,13): warning C4018: '<': signed/unsigned mismatch
-C:\Users\Olivera\Desktop\autoelektronika\olja_danja_projekat\projekat\Vezba8 program\Starter\main_application.c(449,26): warning C4244: '=': conversion from 'double' to 'uint8_t', possible loss of data
-C:\Users\Olivera\Desktop\autoelektronika\olja_danja_projekat\projekat\Vezba8 program\Starter\main_application.c(450,26): warning C4244: '=': conversion from 'double' to 'uint8_t', possible loss of data
-C:\Users\Olivera\Desktop\autoelektronika\olja_danja_projekat\projekat\Vezba8 program\Starter\main_application.c(465,28): warning C4244: '=': conversion from 'double' to 'uint8_t', possible loss of data
-C:\Users\Olivera\Desktop\autoelektronika\olja_danja_projekat\projekat\Vezba8 program\Starter\main_application.c(469,28): warning C4244: '=': conversion from 'double' to 'uint8_t', possible loss of data
+C:\Users\Olivera\Desktop\autoelektronika\olja_danja_projekat\projekat\Vezba8 program\Starter\main_application.c(336,13): warning C4018: '<': signed/unsigned mismatch
+C:\Users\Olivera\Desktop\autoelektronika\olja_danja_projekat\projekat\Vezba8 program\Starter\main_application.c(427,26): warning C4244: '=': conversion from 'MyDouble' to 'uint8_t', possible loss of data
+C:\Users\Olivera\Desktop\autoelektronika\olja_danja_projekat\projekat\Vezba8 program\Starter\main_application.c(428,26): warning C4244: '=': conversion from 'MyDouble' to 'uint8_t', possible loss of data
+C:\Users\Olivera\Desktop\autoelektronika\olja_danja_projekat\projekat\Vezba8 program\Starter\main_application.c(443,28): warning C4244: '=': conversion from 'MyDouble' to 'uint8_t', possible loss of data
+C:\Users\Olivera\Desktop\autoelektronika\olja_danja_projekat\projekat\Vezba8 program\Starter\main_application.c(447,28): warning C4244: '=': conversion from 'MyDouble' to 'uint8_t', possible loss of data
   Starter.vcxproj -> C:\Users\Olivera\Desktop\autoelektronika\olja_danja_projekat\projekat\Vezba8 program\Debug\Starter.exe
