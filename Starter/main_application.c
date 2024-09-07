@@ -17,6 +17,7 @@
 #include "HW_access.h"
 
 
+
 // SERIAL SIMULATOR CHANNEL TO USE 
 #define COM_CH_0 (0)
 #define COM_CH_1 (1)
@@ -42,7 +43,6 @@ void racunanje_napona_sa_kanala0(void* pvParams);
 void PC_Ispis(void* pvParameters);
 void main_demo(void);
 
-
 // TRASNMISSION DATA - CONSTANT IN THIS APPLICATION 
 static volatile uint8_t novi_podatak_primljen = 0;
 static uint32_t volatile t_point;
@@ -52,6 +52,7 @@ static MyDouble trenutni_napon = 0; // Trenutni napon akumulatora
 // RECEPTION DATA BUFFER - COM 0
 #define R_BUF_SIZE (5)
 static uint8_t r_buffer[R_BUF_SIZE];
+const char trigger[] = "XYZ";
 
 
 // 7-SEG NUMBER DATABASE - ALL HEX DIGITS [ 0 1 2 3 4 5 6 7 8 9 A B C D E F ]
@@ -65,7 +66,6 @@ static SemaphoreHandle_t RXC_BinarySemaphore;
 static SemaphoreHandle_t RXC_kanal0_BinarySemaphore;
 static SemaphoreHandle_t displej;
 static SemaphoreHandle_t rec1;
-static SemaphoreHandle_t napon1;
 
 static QueueHandle_t LEDBar_Queue;
 static QueueHandle_t red_kanal0;
@@ -75,10 +75,14 @@ static QueueHandle_t prikaz_vrednosti;
 static QueueHandle_t trenutna_vrednost_serijska;
 static QueueHandle_t maksimalna_vrednost;
 static QueueHandle_t minimalna_vrednost;
+static QueueHandle_t trenutna;
+
 
 static TimerHandle_t tajmer;
 static TimerHandle_t tajmer_prijem;
 
+static uint8_t napon_min = 0;
+static uint8_t napon_max = 0;
 
 
 // INTERRUPTS //
@@ -121,7 +125,11 @@ static void TimerCallback(TimerHandle_t tajmer)
 }
 static void TimerCallback_prijem(TimerHandle_t tajmer_prijem)
 {
-	xSemaphoreGive(RXC_kanal0_BinarySemaphore);
+		if (t_point > (sizeof(trigger) - 1))
+			t_point = 0;
+		send_serial_character(COM_CH_0, trigger[t_point++]);
+		xSemaphoreGive(RXC_kanal0_BinarySemaphore);
+	
 }
 
 
@@ -148,18 +156,19 @@ static void TimerCallback_prijem(TimerHandle_t tajmer_prijem)
 	RXC_kanal0_BinarySemaphore = xSemaphoreCreateBinary();
 	displej = xSemaphoreCreateBinary();
 	rec1 = xSemaphoreCreateMutex();
-	napon1 = xSemaphoreCreateMutex();
-
+	
 
 	// QUEUES
 	LEDBar_Queue = xQueueCreate(1, sizeof(uint8_t));
-	red_kanal0 = xQueueCreate(30, sizeof(uint8_t[30]));
+	red_kanal0 = xQueueCreate(1, sizeof(uint8_t));
 	red_kanal1 = xQueueCreate(1, sizeof(uint8_t[20]));
 	prikaz20_vrednosti = xQueueCreate(1, sizeof(MyDouble));
 	prikaz_vrednosti = xQueueCreate(1, sizeof(MyDouble));
 	maksimalna_vrednost = xQueueCreate(1, sizeof(uint8_t));
 	minimalna_vrednost = xQueueCreate(1, sizeof(uint8_t));
-	trenutna_vrednost_serijska = xQueueCreate(1, sizeof(MyDouble));
+	trenutna_vrednost_serijska = xQueueCreate(1, sizeof(uint8_t));
+	trenutna= xQueueCreate(1, sizeof(MyDouble));
+
 
 	// TASKS 
 	xTaskCreate(SerialReceive_Task, "SRx", configMINIMAL_STACK_SIZE, NULL, TASK_SERIAl_REC_PRI, NULL);	// SERIAL RECEIVER TASK 
@@ -172,6 +181,7 @@ static void TimerCallback_prijem(TimerHandle_t tajmer_prijem)
 	xTaskCreate(obrada_sa_PC, NULL, configMINIMAL_STACK_SIZE, NULL, obrada, NULL);
 	xTaskCreate(racunanje_napona_sa_kanala0, NULL, configMINIMAL_STACK_SIZE, NULL, TASK_SERIAl_KANAL0, NULL);
 	xTaskCreate(PC_Ispis, NULL, configMINIMAL_STACK_SIZE, NULL, TASK_SERIAl_KANAL0, NULL);
+	
 
 	tajmer = xTimerCreate("Timer", pdMS_TO_TICKS(100), pdTRUE, NULL, TimerCallback);
 	xTimerStart(tajmer, 0);
@@ -181,6 +191,7 @@ static void TimerCallback_prijem(TimerHandle_t tajmer_prijem)
 	vTaskStartScheduler();
 	for (;;);
 }
+ 
 
 // TASKS: IMPLEMENTATIONS
 void LEDBar_Task(void* pvParameters)
@@ -205,7 +216,7 @@ void LEDBar_Task(void* pvParameters)
 
 		}
 
-		else if (srednja_vrednost > 13.5 && rec == 2)
+		else if (srednja_vrednost > 13.5  && srednja_vrednost < 14 && rec == 2)
 		{
 			set_LED_BAR(1, led_punjac_naponski);
 		}
@@ -238,23 +249,25 @@ void LCD_Displej(void* pvParameters) {
 	uint8_t pomocna = 0;
 	uint8_t max = 0;
 	uint8_t min = 0;
+	MyDouble Trenutna = 0;
+
 	for (;;) {
 		get_LED_BAR(0, &dioda);
 		xSemaphoreTake(displej, portMAX_DELAY);
 
-		if (xQueueReceive(prikaz20_vrednosti, &trenutna_vrednost, pdMS_TO_TICKS(20)) == pdPASS)
+		if (xQueueReceive(trenutna, &Trenutna, pdMS_TO_TICKS(20)) == pdPASS)
 		{
-			if (trenutna_vrednost > 15)
-				trenutna_vrednost = 15;
 			
-			pomocna = (uint8_t)trenutna_vrednost / 10;
-			select_7seg_digit(0);
-			set_7seg_digit(hexnum[pomocna]);
+				pomocna = (uint8_t)Trenutna / 10;
+				select_7seg_digit(0);
+				set_7seg_digit(hexnum[pomocna]);
 
-			pomocna = (uint8_t)trenutna_vrednost % 10;
-			select_7seg_digit(1);
-			set_7seg_digit(hexnum[pomocna]);
+				pomocna = (uint8_t)Trenutna % 10;
+				select_7seg_digit(1);
+				set_7seg_digit(hexnum[pomocna]);
+			
 		}
+
 		select_7seg_digit(2);
 		set_7seg_digit(0x40);
 
@@ -286,6 +299,7 @@ void LCD_Displej(void* pvParameters) {
 
 		}
 
+
 	}
 
 }
@@ -295,9 +309,10 @@ void PC_Ispis(void* pvParameters) {
 
 	char kontinualno_niz[] = "Rezim punjenja: KONTINUALNO\r\n";
 	char kontrolisano_niz[] = "Rezim punjenja: KONTROLISANO\r\n";
-	char poruka[30];
+	char poruka[33];
 	uint8_t rec = 0;
-	MyDouble napon = 0;
+	uint8_t napon = 0;
+
 	MyInt i = 0;
 
 	for (;;) {
@@ -327,7 +342,7 @@ void PC_Ispis(void* pvParameters) {
 		// Primanje vrednosti napona iz reda
 		if (xQueueReceive(trenutna_vrednost_serijska, &napon, pdMS_TO_TICKS(20)) == pdPASS) {
 			// Formatirajte celu poruku u jedan string
-			snprintf(poruka, sizeof(poruka), "Trenutna vrednost napona: %f\r\n", napon);
+			snprintf(poruka, sizeof(poruka), "Trenutna vrednost napona: %d\r\n", napon);
 
 			send_serial_character(COM_CH_1, '\r');  
 			send_serial_character(COM_CH_1, '\n'); 
@@ -366,118 +381,135 @@ void SerialReceive_Task(void* pvParameters) {
 }
 
 
-
-
 void SerialReceive_kanal0(void* pvParameters)
 {
-	uint8_t vrednost_napona[30] = { 0 };
+	uint8_t vrednost_napona = 0;
 	uint8_t c = 0;
 	uint8_t broj_karaktera = 0;
+	char temp[10]; // Bafer za prikupljanje karaktera
 
 	for (;;)
 	{
+		
 		xSemaphoreTake(RXC_kanal0_BinarySemaphore, portMAX_DELAY);
 
-		if (novi_podatak_primljen==1) {
+
+		if (novi_podatak_primljen == 1) {
+			
 			if (get_serial_character(COM_CH_0, &c) == 0)
 			{
-				if (c == 0x0d) // Ako je primljen karakter za kraj niza
+				
+				if (c == 0x0d)
 				{
+					temp[broj_karaktera] = '\0'; 
+					vrednost_napona = atoi(temp); 
 
-					vrednost_napona[broj_karaktera] = '\0';
-					//printf("PRIMIO:%s\n\r", vrednost_napona);
-					xQueueSend(red_kanal0, &vrednost_napona, 0U);
+					
+					xQueueSend(red_kanal0, &vrednost_napona, portMAX_DELAY);
+
+					
 					broj_karaktera = 0;
-					memset(vrednost_napona, 0, sizeof(vrednost_napona));
+					memset(temp, 0, sizeof(temp));
 				}
-				else if (broj_karaktera < sizeof(vrednost_napona) - 1)
+				
+				else if (broj_karaktera < sizeof(temp) - 1)
 				{
-					vrednost_napona[broj_karaktera++] = c;
-
+					temp[broj_karaktera++] = c;
 				}
-
-
 			}
-			novi_podatak_primljen = 0;
+			novi_podatak_primljen = 0; // Resetujemo zastavicu
 		}
 	}
 }
 
+
+
+
+
 void racunanje_napona_sa_kanala0(void* pvParams)
 {
-	MyDouble prijem_napona[30] = { 0 };
-	uint8_t pomocna = 0;
-	MyDouble suma = 0;
-	MyDouble srednja_vrednost = 0;
-	uint8_t i = 0;
-	uint8_t max = 0;
+	MyDouble prijem_napona[20] = { 0 }; 
+	uint8_t pomocna = 0;               
+	MyDouble suma = 0;                  
+	MyDouble srednja_vrednost = 0;      
+	uint8_t brojac = 0;               
+	uint8_t trenutna_pozicija = 0;      
 	uint8_t min = 0;
-
+	uint8_t max = 0;      
+	MyDouble trenutna_vrednost = 0;
 	for (;;)
 	{
-		if (xQueueReceive(red_kanal0, &pomocna, pdMS_TO_TICKS(100)) == pdPASS)
+		
+		if (xQueueReceive(red_kanal0, &pomocna, portMAX_DELAY) == pdPASS)
 		{
-			printf("PRIMLJENI NAPON: %d\n\r", pomocna);
-			prijem_napona[i] = (MyDouble)pomocna;
-			i++;
-		}
+			
+			prijem_napona[trenutna_pozicija] = (MyDouble)pomocna;
+			trenutna_pozicija = (trenutna_pozicija + 1) % 20; 
+			printf("trenutna pozicija:%d \n\r", trenutna_pozicija);
 
-		if (i == 32)
-		{
-			min = prijem_napona[2];
-			max = prijem_napona[2];
+			
+			if (brojac < 20) {
+				brojac++;
+			}
 
-			for (uint8_t j = 2; j < 32; j++)
+			
+			suma = 0;
+			min = prijem_napona[0];
+			max = prijem_napona[0];
+
+			
+			for (uint8_t i = 0; i < brojac; i++)
 			{
-				printf("Vrednost prijem_napona[%d]: %f \n\r", j, prijem_napona[j]); // Ispis svake vrednosti radi debagovanja
+				suma += prijem_napona[i];
 
-				// Računanje sume za poslednjih 20 očitavanja
-				if (j >= 12)
-				{
-					suma += prijem_napona[j];
+				if (prijem_napona[i] < min) {
+					min = prijem_napona[i];
 				}
 
-				// Računanje min i max za svih 30 vrednosti
-				if (prijem_napona[j] < min)
-				{
-					min = prijem_napona[j];
-				}
-				if (prijem_napona[j] > max)
-				{
-					max = prijem_napona[j];
+				if (prijem_napona[i] > max) {
+					max = prijem_napona[i];
 				}
 			}
-			   
 
-
+			
 			srednja_vrednost = suma / 20;
+
+			if (napon_min == 1 && napon_max == 15)
+			{
+
+				trenutna_vrednost = (pomocna * 15) / 255;
+				xQueueSend(trenutna, &trenutna_vrednost, 0U);
+				printf("Trenutna vrednost:%f\r\n", trenutna_vrednost);
+			}
+			
+			
 			printf("Srednja vrednost: %f \r\n", srednja_vrednost);
 			printf("Minimalna izmerena: %d \r\n", min);
 			printf("Maksimalna izmerena: %d \r\n", max);
 
+			
+			xQueueSend(maksimalna_vrednost, &max, 0U);
+			xQueueSend(minimalna_vrednost, &min, 0U);
+			xQueueSend(prikaz20_vrednosti, &srednja_vrednost, 0U);
+			xQueueSend(prikaz_vrednosti, &srednja_vrednost, 0U);
+			xQueueSend(trenutna_vrednost_serijska, &pomocna, portMAX_DELAY);
 
-			i = 2;
-			suma = 0;
 		}
-
-		xQueueSend(maksimalna_vrednost, &max, 0U);
-		xQueueSend(minimalna_vrednost, &min, 0U);
-		xQueueSend(prikaz20_vrednosti, &srednja_vrednost, 0U);
-		xQueueSend(prikaz_vrednosti, &srednja_vrednost, 0U);
-		xQueueSend(trenutna_vrednost_serijska, &srednja_vrednost, 0U);
 	}
 }
+
 
 
 void obrada_sa_PC(void* pvParameters)
 {
 	char prijem_rec[13] = { 0 }; // Promenjena veličina da bude char niz za string
 	uint8_t rec = 0;
-	uint8_t napon = 0;
+	//uint8_t napon_min = 0;
+	//uint8_t napon_max = 0;
 
 	for (;;)
 	{
-		xQueueReceive(red_kanal1, prijem_rec, pdMS_TO_TICKS(50)); // Promenjen timeout na portMAX_DELAY 
+		xQueueReceive(red_kanal1, prijem_rec, portMAX_DELAY); // Promenjen timeout na portMAX_DELAY 
 
 		// Upoređivanje stringa
 		if (strcmp(prijem_rec, "KONTINUALNO") == 0)
@@ -494,17 +526,16 @@ void obrada_sa_PC(void* pvParameters)
 			xQueueSend(LEDBar_Queue, &rec, 0U);// Ako nije "KONTINUALNO", postavi rec na 0 ili neku drugu default vrednost
 			xSemaphoreGive(rec1);
 		}
-		if (strcmp(prijem_rec, "Admin12.5") == 0) {
-			xSemaphoreTake(napon1, portMAX_DELAY);
-			napon = 0;
-			xSemaphoreGive(napon1);
+		if (strcmp(prijem_rec, "Admin") == 0) {
+			
+			napon_min = 1;
+			
 
 		}
-		else if (strcmp(prijem_rec, "Admax14.5") == 0) {
+		else if (strcmp(prijem_rec, "Admax") == 0) {
 
-			xSemaphoreTake(napon1, portMAX_DELAY);
-			napon = 15;
-			xSemaphoreGive(napon1);
+			napon_max = 15;
+			
 		}
 	}
 }
