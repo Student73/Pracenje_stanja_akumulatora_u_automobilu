@@ -1,8 +1,8 @@
 ﻿  main_application.c
-D:\Desktop\autoelektronika\olja_danja_projekat\projekat\Vezba8 program\Starter\main_application.c(2,10): warning C4067: unexpected tokens following preprocessor directive - expected a newline
-D:\Desktop\autoelektronika\olja_danja_projekat\projekat\Vezba8 program\Starter\main_application.c(351,13): warning C4018: '<': signed/unsigned mismatch
-D:\Desktop\autoelektronika\olja_danja_projekat\projekat\Vezba8 program\Starter\main_application.c(457,26): warning C4244: '=': conversion from 'MyDouble' to 'uint8_t', possible loss of data
-D:\Desktop\autoelektronika\olja_danja_projekat\projekat\Vezba8 program\Starter\main_application.c(458,26): warning C4244: '=': conversion from 'MyDouble' to 'uint8_t', possible loss of data
-D:\Desktop\autoelektronika\olja_danja_projekat\projekat\Vezba8 program\Starter\main_application.c(466,28): warning C4244: '=': conversion from 'MyDouble' to 'uint8_t', possible loss of data
-D:\Desktop\autoelektronika\olja_danja_projekat\projekat\Vezba8 program\Starter\main_application.c(470,28): warning C4244: '=': conversion from 'MyDouble' to 'uint8_t', possible loss of data
-  Starter.vcxproj -> D:\Desktop\autoelektronika\olja_danja_projekat\projekat\Vezba8 program\Debug\Starter.exe
+C:\Users\Olivera\Desktop\Bojan_autoelektronika\Autoelectronics\Starter\main_application.c(2,10): warning C4067: unexpected tokens following preprocessor directive - expected a newline
+C:\Users\Olivera\Desktop\Bojan_autoelektronika\Autoelectronics\Starter\main_application.c(121,32): warning C4098: 'prvProcessRXCInterrupt': 'void' function returning a value
+C:\Users\Olivera\Desktop\Bojan_autoelektronika\Autoelectronics\Starter\main_application.c(164,72): warning C4133: 'function': incompatible types - from 'void (__cdecl *)(void)' to 'uint32_t (__cdecl *)(void)'
+C:\Users\Olivera\Desktop\Bojan_autoelektronika\Autoelectronics\Starter\main_application.c(453,13): warning C4018: '<': signed/unsigned mismatch
+C:\Users\Olivera\Desktop\Bojan_autoelektronika\Autoelectronics\Starter\main_application.c(489,13): warning C4018: '<': signed/unsigned mismatch
+C:\Users\Olivera\Desktop\Bojan_autoelektronika\Autoelectronics\Starter\main_application.c(550,1): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+  Starter.vcxproj -> C:\Users\Olivera\Desktop\Bojan_autoelektronika\Autoelectronics\Debug\Starter.exe
